@@ -172,7 +172,9 @@ public enum AppGroupAccess {
     }
 }
 
-public protocol SecretStoring: AnyObject {
+/// Callers never use instance identity, so value types may conform.
+/// `MemorySecretStore` stays a class only because its dictionary is shared mutable state.
+public protocol SecretStoring {
     func save(_ value: String, account: String) throws
     func load(account: String) throws -> String?
     func delete(account: String) throws

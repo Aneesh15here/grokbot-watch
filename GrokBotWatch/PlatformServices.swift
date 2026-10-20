@@ -36,7 +36,7 @@ enum WidgetBridge {
     }
 }
 
-struct KeychainSecretStore: SecretStoring {
+struct KeychainSecretStore: SecretStoring, Sendable {
     private var service: String {
         Bundle.main.bundleIdentifier ?? "com.aneesh15here.grokbotwatch"
     }
@@ -95,7 +95,7 @@ struct KeychainError: LocalizedError {
 }
 
 @MainActor
-final class WatchSpeaker: SpeechSpeaking {
+final class WatchSpeaker: @MainActor SpeechSpeaking {
     private let synthesizer = AVSpeechSynthesizer()
 
     func enqueue(_ sentence: String, settings: VoiceSettings) {
@@ -116,7 +116,7 @@ final class WatchSpeaker: SpeechSpeaking {
 }
 
 @MainActor
-final class WatchHaptics: HapticPlaying {
+final class WatchHaptics: @MainActor HapticPlaying {
     func play(_ cue: HapticCue) {
         switch cue {
         case .botFinished:
@@ -144,7 +144,7 @@ enum WatchDictation {
             return false
         }
         controller.presentTextInputController(
-            withSuggestions: suggestions.map { Array<Any>($0) },
+            withSuggestions: suggestions,
             allowedInputMode: .plain,
             completion: completion(onResult)
         )
@@ -195,16 +195,17 @@ final class CallRuntime: NSObject, ObservableObject, WKExtendedRuntimeSessionDel
     }
 }
 
+@MainActor
 final class PathMonitor: ObservableObject {
     @Published private(set) var isOnline = true
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "com.grokbot.watch.network")
-    var onChange: ((Bool) -> Void)?
+    var onChange: (@MainActor (Bool) -> Void)?
 
     func start() {
         monitor.pathUpdateHandler = { [weak self] path in
             let online = path.status == .satisfied
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self?.isOnline = online
                 self?.onChange?(online)
             }
