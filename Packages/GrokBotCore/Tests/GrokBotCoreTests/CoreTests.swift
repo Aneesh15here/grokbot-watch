@@ -144,6 +144,27 @@ final class QueueAndActivityTests: XCTestCase {
         XCTAssertNil(LaunchFile.consume(from: launchURL))
         try? FileManager.default.removeItem(at: directory)
     }
+
+    func testFreePersonalTeamSkipsTheAppGroup() {
+        XCTAssertNil(SharedLocations.activityURL())
+        XCTAssertNil(SharedLocations.launchURL())
+        XCTAssertNil(SharedLocations.stateURL())
+        XCTAssertEqual(
+            SharedLocations.activityURL(useAppGroup: true),
+            SharedLocations.containerURL()?.appendingPathComponent("activity.json")
+        )
+        XCTAssertEqual(SharedLocations.appGroupID, "group.com.aneesh15here.grokbotwatch")
+        XCTAssertFalse(AppGroupAccess.isEnabled(infoValue: nil))
+        XCTAssertFalse(AppGroupAccess.isEnabled(infoValue: "NO"))
+        XCTAssertFalse(AppGroupAccess.isEnabled(infoValue: "$(GROKBOT_USE_APP_GROUP)"))
+        XCTAssertTrue(AppGroupAccess.isEnabled(infoValue: "YES"))
+        XCTAssertTrue(AppGroupAccess.isEnabled(infoValue: true))
+        XCTAssertFalse(AppGroupAccess.isEnabled(infoValue: false))
+        XCTAssertEqual(AppGroupAccess.groupID(infoValue: nil), SharedLocations.appGroupID)
+        XCTAssertEqual(AppGroupAccess.groupID(infoValue: "$(GROKBOT_APP_GROUP_ID)"), SharedLocations.appGroupID)
+        XCTAssertEqual(AppGroupAccess.groupID(infoValue: "  "), SharedLocations.appGroupID)
+        XCTAssertEqual(AppGroupAccess.groupID(infoValue: "group.example.watch"), "group.example.watch")
+    }
 }
 
 final class GrokBotHTTPTransportTests: XCTestCase {

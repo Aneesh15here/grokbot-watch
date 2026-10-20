@@ -53,9 +53,8 @@ enum LaunchFlag {
 
     static func write() {
         UserDefaults.standard.set(true, forKey: key)
-        if let url = SharedLocations.launchURL() {
-            try? LaunchFile.write(.talkToLastBot, to: url)
-        }
+        guard let url = sharedLaunchURL() else { return }
+        try? LaunchFile.write(.talkToLastBot, to: url)
     }
 
     static func consume() -> LaunchAction? {
@@ -63,9 +62,16 @@ enum LaunchFlag {
         if flagged {
             UserDefaults.standard.removeObject(forKey: key)
         }
-        if let url = SharedLocations.launchURL(), let action = LaunchFile.consume(from: url) {
+        if let url = sharedLaunchURL(), let action = LaunchFile.consume(from: url) {
             return action
         }
         return flagged ? .talkToLastBot : nil
+    }
+
+    private static func sharedLaunchURL() -> URL? {
+        SharedLocations.launchURL(
+            useAppGroup: AppGroupAccess.isEnabled(),
+            appGroupID: AppGroupAccess.groupID()
+        )
     }
 }

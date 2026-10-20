@@ -23,7 +23,10 @@ struct ActivityProvider: TimelineProvider {
     }
 
     private func current() -> ActivitySnapshot {
-        guard let url = SharedLocations.activityURL() else {
+        guard let url = SharedLocations.activityURL(
+            useAppGroup: AppGroupAccess.isEnabled(),
+            appGroupID: AppGroupAccess.groupID()
+        ) else {
             return .placeholderSnapshot
         }
         return ActivityFile.read(from: url) ?? .placeholderSnapshot

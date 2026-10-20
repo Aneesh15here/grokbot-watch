@@ -4,15 +4,13 @@ import SwiftUI
 
 struct CallView: View {
     @ObservedObject var presenter: AppPresenter
-    @StateObject private var dictation = WatchDictation()
     @State private var showingSwitch = false
     @State private var showingVoice = false
     @State private var showingType = false
     @State private var draft = ""
     @State private var dictationError: String?
     @State private var rateIndex: Double = 1
-    @State private var holding = false
-    @State private var listenGeneration = 0
+    @State private var dictating = false
 
     var body: some View {
         let snapshot = presenter.snapshot
@@ -39,11 +37,6 @@ struct CallView: View {
                             .font(.caption2)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    if !dictation.partial.isEmpty {
-                        Text(dictation.partial)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
                     if let dictationError {
                         Text(dictationError)
                             .font(.caption2)
@@ -53,14 +46,14 @@ struct CallView: View {
             }
 
             talkButton
-                .accessibilityIdentifier("call.talk")
 
             HStack {
                 Button("Switch") { showingSwitch = true }
                     .accessibilityIdentifier("call.switch")
                 Button("Voice") { showingVoice = true }
                     .accessibilityIdentifier("call.voice")
-                Button("Type") { showingType = true }
+                Button("Type", action: beginTyping)
+                    .disabled(dictating)
                     .accessibilityIdentifier("call.type")
                 Button("End") { presenter.model.endCall() }
                     .accessibilityIdentifier("call.end")
@@ -99,51 +92,53 @@ struct CallView: View {
                 Task { await presenter.model.submitUtterance(text) }
             }
         }
-        .onChange(of: dictation.partial) { _, text in
-            presenter.model.setPartial(text)
-        }
     }
 
     private var talkButton: some View {
-        let listening = presenter.snapshot.phase == .listening || holding
-        return ZStack {
-            Circle()
-                .fill(listening ? Color.green.opacity(0.9) : Color.accentColor)
-                .frame(width: 54, height: 54)
-            Image(systemName: listening ? "waveform" : "mic.fill")
-                .font(.title3)
-                .foregroundStyle(.black)
+        let listening = presenter.snapshot.phase == .listening || dictating
+        return Button(action: beginDictation) {
+            ZStack {
+                Circle()
+                    .fill(listening ? Color.green.opacity(0.9) : Color.accentColor)
+                    .frame(width: 54, height: 54)
+                Image(systemName: listening ? "waveform" : "mic.fill")
+                    .font(.title3)
+                    .foregroundStyle(.black)
+            }
         }
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard !holding else { return }
-                    holding = true
-                    listenGeneration += 1
-                    let generation = listenGeneration
-                    dictationError = nil
-                    presenter.model.setListening(true)
-                    Task {
-                        do {
-                            try await dictation.begin(localeIdentifier: presenter.snapshot.settings.voice.localeIdentifier)
-                            if generation != listenGeneration {
-                                _ = dictation.end()
-                            }
-                        } catch {
-                            guard generation == listenGeneration else { return }
-                            holding = false
-                            presenter.model.setListening(false)
-                            dictationError = error.localizedDescription
-                        }
-                    }
-                }
-                .onEnded { _ in
-                    holding = false
-                    listenGeneration += 1
-                    let text = dictation.end()
-                    Task { await presenter.model.submitUtterance(text) }
-                }
-        )
+        .buttonStyle(.plain)
+        .disabled(dictating)
+        .accessibilityIdentifier("call.talk")
+        .accessibilityLabel("Dictate")
+    }
+
+    private func beginDictation() {
+        guard !dictating else { return }
+        dictating = true
+        dictationError = nil
+        presenter.model.setListening(true)
+        let presented = WatchDictation.capture(suggestions: nil) { text in
+            dictating = false
+            Task { await presenter.model.submitUtterance(text ?? "") }
+        }
+        guard presented else {
+            dictating = false
+            presenter.model.setListening(false)
+            dictationError = "Dictation is unavailable right now. Tap Type."
+            return
+        }
+    }
+
+    private func beginTyping() {
+        guard !dictating else { return }
+        dictationError = nil
+        let presented = WatchDictation.capture(suggestions: ["Yes", "No", "Thanks", "Stop"]) { text in
+            guard let text else { return }
+            Task { await presenter.model.submitUtterance(text) }
+        }
+        if !presented {
+            showingType = true
+        }
     }
 
     private var statusColor: Color {

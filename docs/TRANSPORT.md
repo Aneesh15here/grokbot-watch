@@ -61,4 +61,4 @@ If the watch is offline, or the send fails with a network error, HTTP 408, 429, 
 
 ## Complication
 
-The watch writes an activity snapshot into the App Group `group.com.grokbot.watch`. The WidgetKit complication reads that file. It does not hold the API key. A free Apple ID cannot provision App Groups; use the `.free.entitlements` files in that case. The complication then stays on "Open Grok Bot". Calls, the queue, and the shortcut still work. State for those is stored in the app's documents directory, which does not need an App Group.
+The watch writes an activity snapshot into the App Group only when `GROKBOT_USE_APP_GROUP` is `YES`. The group id is `group.` plus `options.bundleIdPrefix` in `project.yml` (default `group.com.aneesh15here.grokbotwatch`). The WidgetKit complication reads that file. It does not hold the API key. A free Personal Team is the default: the App Group entitlement is omitted, no snapshot is shared, and the complication stays on "Open Grok Bot". Calls, the queue, and the shortcut still work. State for those is stored in the app's documents directory and UserDefaults, which do not need an App Group.
