@@ -1,0 +1,81 @@
+name: GrokBotWatch
+options:
+  bundleIdPrefix: com.grokbot.watch
+  deploymentTarget:
+    watchOS: "11.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+settings:
+  SWIFT_VERSION: "5.0"
+  MARKETING_VERSION: "1.0"
+  CURRENT_PROJECT_VERSION: "1"
+  CODE_SIGN_STYLE: Automatic
+  TARGETED_DEVICE_FAMILY: "4"
+packages:
+  GrokBotCore:
+    path: Packages/GrokBotCore
+targets:
+  GrokBotWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: GrokBotWatch
+    dependencies:
+      - package: GrokBotCore
+        product: GrokBotCore
+      - target: GrokBotComplication
+        embed: true
+    entitlements:
+      path: GrokBotWatch/GrokBotWatch.entitlements
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.grokbot.watch.app
+      PRODUCT_NAME: GrokBotWatch
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_FILE: GrokBotWatch/Info.plist
+      CODE_SIGN_ENTITLEMENTS: GrokBotWatch/GrokBotWatch.entitlements
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      ENABLE_PREVIEWS: YES
+      SUPPORTS_MACCATALYST: NO
+  GrokBotComplication:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - path: GrokBotComplication
+    dependencies:
+      - package: GrokBotCore
+        product: GrokBotCore
+    entitlements:
+      path: GrokBotComplication/GrokBotComplication.entitlements
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.grokbot.watch.app.complication
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_FILE: GrokBotComplication/Info.plist
+      CODE_SIGN_ENTITLEMENTS: GrokBotComplication/GrokBotComplication.entitlements
+      SKIP_INSTALL: YES
+  GrokBotWatchTests:
+    type: bundle.unit-test
+    platform: watchOS
+    sources:
+      - path: Packages/GrokBotCore/Tests/GrokBotCoreTests
+    dependencies:
+      - package: GrokBotCore
+        product: GrokBotCore
+      - target: GrokBotWatch
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.grokbot.watch.tests
+      GENERATE_INFOPLIST_FILE: YES
+      TEST_HOST: "$(BUILT_PRODUCTS_DIR)/GrokBotWatch.app/GrokBotWatch"
+      BUNDLE_LOADER: "$(TEST_HOST)"
+schemes:
+  GrokBotWatch:
+    build:
+      targets:
+        GrokBotWatch: all
+        GrokBotComplication: all
+        GrokBotWatchTests: [test]
+    run:
+      config: Debug
+    test:
+      targets:
+        - GrokBotWatchTests
+      gatherCoverageData: false
