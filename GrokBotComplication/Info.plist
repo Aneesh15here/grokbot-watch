@@ -9,5 +9,9 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
+	<key>GrokBotUseAppGroup</key>
+	<string>$(GROKBOT_USE_APP_GROUP)</string>
+	<key>GrokBotAppGroupID</key>
+	<string>$(GROKBOT_APP_GROUP_ID)</string>
 </dict>
 </plist>

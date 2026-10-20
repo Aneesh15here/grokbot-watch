@@ -83,27 +83,92 @@ public enum LaunchFile {
 }
 
 public enum SharedLocations {
-    public static let appGroupID = "group.com.grokbot.watch"
+    /// `group.` plus `options.bundleIdPrefix` in project.yml.
+    public static let appGroupID = "group.com.aneesh15here.grokbotwatch"
 
-    public static func containerURL(fileManager: FileManager = .default) -> URL? {
+    public static func containerURL(
+        appGroupID: String = SharedLocations.appGroupID,
+        fileManager: FileManager = .default
+    ) -> URL? {
         #if os(Linux)
-        _ = fileManager
+        _ = (appGroupID, fileManager)
         return nil
         #else
         return fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
         #endif
     }
 
-    public static func activityURL(fileManager: FileManager = .default) -> URL? {
-        containerURL(fileManager: fileManager)?.appendingPathComponent("activity.json")
+    /// Free Personal Team path returns nil. The complication then stays on its placeholder.
+    public static func activityURL(
+        useAppGroup: Bool = false,
+        appGroupID: String = SharedLocations.appGroupID,
+        fileManager: FileManager = .default
+    ) -> URL? {
+        sharedFile("activity.json", useAppGroup: useAppGroup, appGroupID: appGroupID, fileManager: fileManager)
     }
 
-    public static func launchURL(fileManager: FileManager = .default) -> URL? {
-        containerURL(fileManager: fileManager)?.appendingPathComponent("launch.json")
+    public static func launchURL(
+        useAppGroup: Bool = false,
+        appGroupID: String = SharedLocations.appGroupID,
+        fileManager: FileManager = .default
+    ) -> URL? {
+        sharedFile("launch.json", useAppGroup: useAppGroup, appGroupID: appGroupID, fileManager: fileManager)
     }
 
-    public static func stateURL(fileManager: FileManager = .default) -> URL? {
-        containerURL(fileManager: fileManager)?.appendingPathComponent("state.json")
+    public static func stateURL(
+        useAppGroup: Bool = false,
+        appGroupID: String = SharedLocations.appGroupID,
+        fileManager: FileManager = .default
+    ) -> URL? {
+        sharedFile("state.json", useAppGroup: useAppGroup, appGroupID: appGroupID, fileManager: fileManager)
+    }
+
+    private static func sharedFile(
+        _ name: String,
+        useAppGroup: Bool,
+        appGroupID: String,
+        fileManager: FileManager
+    ) -> URL? {
+        guard useAppGroup else { return nil }
+        return containerURL(appGroupID: appGroupID, fileManager: fileManager)?.appendingPathComponent(name)
+    }
+}
+
+public enum AppGroupAccess {
+    public static let useAppGroupInfoKey = "GrokBotUseAppGroup"
+    public static let appGroupIDInfoKey = "GrokBotAppGroupID"
+
+    public static func isEnabled(infoValue: Any?) -> Bool {
+        switch infoValue {
+        case let enabled as Bool:
+            return enabled
+        case let enabled as NSNumber:
+            return enabled.boolValue
+        case let enabled as String:
+            switch enabled.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "yes", "true", "1":
+                return true
+            default:
+                return false
+            }
+        default:
+            return false
+        }
+    }
+
+    public static func groupID(infoValue: Any?, fallback: String = SharedLocations.appGroupID) -> String {
+        guard let raw = infoValue as? String else { return fallback }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains("$(") else { return fallback }
+        return trimmed
+    }
+
+    public static func isEnabled(bundle: Bundle = .main) -> Bool {
+        isEnabled(infoValue: bundle.object(forInfoDictionaryKey: useAppGroupInfoKey))
+    }
+
+    public static func groupID(bundle: Bundle = .main) -> String {
+        groupID(infoValue: bundle.object(forInfoDictionaryKey: appGroupIDInfoKey))
     }
 }
 

@@ -1,6 +1,12 @@
 name: GrokBotWatch
 options:
-  bundleIdPrefix: com.grokbot.watch
+  # The only bundle id to change. A free Personal Team needs a prefix that is
+  # not already registered to another Apple ID. Regenerate after editing it.
+  # XcodeGen appends the target name:
+  #   <prefix>.GrokBotWatch
+  #   <prefix>.GrokBotComplication
+  #   <prefix>.GrokBotWatchTests
+  bundleIdPrefix: &bundleIdPrefix com.aneesh15here.grokbotwatch
   deploymentTarget:
     watchOS: "11.0"
   createIntermediateGroups: true
@@ -11,6 +17,13 @@ settings:
   CURRENT_PROJECT_VERSION: "1"
   CODE_SIGN_STYLE: Automatic
   TARGETED_DEVICE_FAMILY: "4"
+  # Same value as options.bundleIdPrefix. The App Group id is group.<prefix>.
+  BUNDLE_ID_PREFIX: *bundleIdPrefix
+  GROKBOT_APP_GROUP_ID: group.$(BUNDLE_ID_PREFIX)
+  # Free Personal Team is the default, so the App Group is off.
+  # A paid membership that has created $(GROKBOT_APP_GROUP_ID) sets this to YES
+  # and points both targets at the entitlements files without the `.free` suffix.
+  GROKBOT_USE_APP_GROUP: "NO"
 packages:
   GrokBotCore:
     path: Packages/GrokBotCore
@@ -26,13 +39,12 @@ targets:
       - target: GrokBotComplication
         embed: true
     entitlements:
-      path: GrokBotWatch/GrokBotWatch.entitlements
+      path: GrokBotWatch/GrokBotWatch.free.entitlements
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.grokbot.watch.app
       PRODUCT_NAME: GrokBotWatch
       GENERATE_INFOPLIST_FILE: YES
       INFOPLIST_FILE: GrokBotWatch/Info.plist
-      CODE_SIGN_ENTITLEMENTS: GrokBotWatch/GrokBotWatch.entitlements
+      CODE_SIGN_ENTITLEMENTS: GrokBotWatch/GrokBotWatch.free.entitlements
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
       ENABLE_PREVIEWS: YES
       SUPPORTS_MACCATALYST: NO
@@ -45,12 +57,11 @@ targets:
       - package: GrokBotCore
         product: GrokBotCore
     entitlements:
-      path: GrokBotComplication/GrokBotComplication.entitlements
+      path: GrokBotComplication/GrokBotComplication.free.entitlements
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.grokbot.watch.app.complication
       GENERATE_INFOPLIST_FILE: YES
       INFOPLIST_FILE: GrokBotComplication/Info.plist
-      CODE_SIGN_ENTITLEMENTS: GrokBotComplication/GrokBotComplication.entitlements
+      CODE_SIGN_ENTITLEMENTS: GrokBotComplication/GrokBotComplication.free.entitlements
       SKIP_INSTALL: YES
   GrokBotWatchTests:
     type: bundle.unit-test
@@ -62,7 +73,6 @@ targets:
         product: GrokBotCore
       - target: GrokBotWatch
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.grokbot.watch.tests
       GENERATE_INFOPLIST_FILE: YES
       TEST_HOST: "$(BUILT_PRODUCTS_DIR)/GrokBotWatch.app/GrokBotWatch"
       BUNDLE_LOADER: "$(TEST_HOST)"

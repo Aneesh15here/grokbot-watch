@@ -3,7 +3,6 @@ import Foundation
 import GrokBotCore
 import Network
 import Security
-import Speech
 import SwiftUI
 import WatchKit
 import WidgetKit
@@ -28,14 +27,19 @@ final class AppPresenter: ObservableObject {
 
 enum WidgetBridge {
     static func publish(_ snapshot: ActivitySnapshot) {
-        guard let url = SharedLocations.activityURL() else { return }
+        guard let url = SharedLocations.activityURL(
+            useAppGroup: AppGroupAccess.isEnabled(),
+            appGroupID: AppGroupAccess.groupID()
+        ) else { return }
         try? ActivityFile.write(snapshot, to: url)
         WidgetCenter.shared.reloadTimelines(ofKind: GrokBotAPI.widgetKind)
     }
 }
 
 struct KeychainSecretStore: SecretStoring {
-    private let service = "com.grokbot.watch"
+    private var service: String {
+        Bundle.main.bundleIdentifier ?? "com.aneesh15here.grokbotwatch"
+    }
 
     func save(_ value: String, account: String) throws {
         let data = Data(value.utf8)
@@ -125,88 +129,41 @@ final class WatchHaptics: HapticPlaying {
     }
 }
 
-@MainActor
-final class WatchDictation: NSObject, ObservableObject {
-    @Published private(set) var partial = ""
-    private var recognizer: SFSpeechRecognizer?
-    private var request: SFSpeechAudioBufferRecognitionRequest?
-    private var task: SFSpeechRecognitionTask?
-    private let engine = AVAudioEngine()
+enum WatchDictation {
+    /// Presents the watch text input controller.
+    /// `nil` suggestions open dictation immediately. An empty array would show the
+    /// keyboard, Scribble, and microphone list instead. A non-nil list shows those
+    /// plus the suggestions. The Speech framework is not in the watchOS SDK.
+    @MainActor
+    @discardableResult
+    static func capture(
+        suggestions: [String]?,
+        onResult: @escaping @MainActor (String?) -> Void
+    ) -> Bool {
+        guard let controller = WKApplication.shared().visibleInterfaceController else {
+            return false
+        }
+        controller.presentTextInputController(
+            withSuggestions: suggestions.map { Array<Any>($0) },
+            allowedInputMode: .plain,
+            completion: completion(onResult)
+        )
+        return true
+    }
 
-    func begin(localeIdentifier: String) async throws {
-        stopEngine()
-        let granted = await Self.requestAccess()
-        guard granted else {
-            throw DictationError(message: "Speech recognition is off. Type the message instead.")
-        }
-        try configureSession()
-        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: localeIdentifier))
-            ?? SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
-        guard let recognizer, recognizer.isAvailable else {
-            throw DictationError(message: "Speech recognition is unavailable. Type the message instead.")
-        }
-        recognizer.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
-        self.recognizer = recognizer
-        let request = SFSpeechAudioBufferRecognitionRequest()
-        request.shouldReportPartialResults = true
-        request.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
-        self.request = request
-        partial = ""
-        task = recognizer.recognitionTask(with: request) { [weak self] result, _ in
-            guard let text = result?.bestTranscription.formattedString else { return }
+    /// WatchKit may call this off the main actor. Build it outside an isolated context.
+    nonisolated static func completion(
+        _ onResult: @escaping @MainActor (String?) -> Void
+    ) -> @Sendable ([Any]?) -> Void {
+        { results in
+            let trimmed = (results?.first as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let text = (trimmed?.isEmpty == false) ? trimmed : nil
             Task { @MainActor in
-                self?.partial = text
-            }
-        }
-        let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else {
-            throw DictationError(message: "The microphone is unavailable. Type the message instead.")
-        }
-        input.removeTap(onBus: 0)
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-            request.append(buffer)
-        }
-        engine.prepare()
-        try engine.start()
-    }
-
-    func end() -> String {
-        let text = partial
-        stopEngine()
-        partial = ""
-        return text
-    }
-
-    private func stopEngine() {
-        if engine.isRunning {
-            engine.stop()
-        }
-        engine.inputNode.removeTap(onBus: 0)
-        request?.endAudio()
-        task?.cancel()
-        request = nil
-        task = nil
-    }
-
-    private func configureSession() throws {
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .default, options: [.duckOthers])
-        try session.setActive(true)
-    }
-
-    private static func requestAccess() async -> Bool {
-        await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
-                continuation.resume(returning: status == .authorized)
+                onResult(text)
             }
         }
     }
-}
-
-struct DictationError: LocalizedError {
-    var message: String
-    var errorDescription: String? { message }
 }
 
 final class CallRuntime: NSObject, ObservableObject, WKExtendedRuntimeSessionDelegate {

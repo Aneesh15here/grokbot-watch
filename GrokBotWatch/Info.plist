@@ -8,9 +8,9 @@
 	<true/>
 	<key>WKRunsIndependentlyOfCompanionApp</key>
 	<true/>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>The microphone turns your voice into text on the watch. Only that text is sent to the bot.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Speech recognition turns what you say into the message sent to your Grok Bot.</string>
+	<key>GrokBotUseAppGroup</key>
+	<string>$(GROKBOT_USE_APP_GROUP)</string>
+	<key>GrokBotAppGroupID</key>
+	<string>$(GROKBOT_APP_GROUP_ID)</string>
 </dict>
 </plist>
