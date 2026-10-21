@@ -278,6 +278,26 @@ final class GrokBotHTTPTransportTests: XCTestCase {
         XCTAssertThrowsError(try TransportFactory.liveTransport(secrets: secrets, settings: settings, http: http, makeRequestID: { "r" }))
     }
 
+    func testAStructCanProvideTheCredential() throws {
+        let settings = AppSettings.initial
+        let http = CapturingHTTP()
+        let transport = try TransportFactory.liveTransport(
+            secrets: FixedSecretStore(token: "from-struct"),
+            settings: settings,
+            http: http,
+            makeRequestID: { "r" }
+        )
+        XCTAssertEqual(transport.baseURL.absoluteString, "https://api.cursor.com")
+        XCTAssertThrowsError(
+            try TransportFactory.liveTransport(
+                secrets: FixedSecretStore(token: ""),
+                settings: settings,
+                http: http,
+                makeRequestID: { "r" }
+            )
+        )
+    }
+
     func testCreatedSessionWarningMatchesTheOfficialClient() {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let fresh = BotSession(
@@ -537,6 +557,19 @@ final class AppModelTests: XCTestCase {
             online: true
         )
     }
+}
+
+private struct FixedSecretStore: SecretStoring {
+    var token: String
+
+    func save(_ value: String, account: String) throws {}
+
+    func load(account: String) throws -> String? {
+        guard account == GrokBotAPI.credentialAccount else { return nil }
+        return token
+    }
+
+    func delete(account: String) throws {}
 }
 
 private struct SendProbe: Decodable {

@@ -2,7 +2,7 @@ import GrokBotCore
 import SwiftUI
 import WidgetKit
 
-struct ActivityEntry: TimelineEntry {
+struct ActivityEntry: TimelineEntry, Sendable {
     var date: Date
     var snapshot: ActivitySnapshot
 }

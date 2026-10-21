@@ -8,12 +8,14 @@ struct SettingsView: View {
     @State private var status: String?
     @State private var keyIsStored = false
 
+    @MainActor
     init(presenter: AppPresenter) {
         self.presenter = presenter
         _baseURL = State(initialValue: presenter.snapshot.settings.baseURLString)
         _keyIsStored = State(initialValue: Self.storedKey() != nil)
     }
 
+    @MainActor
     private static func storedKey() -> String? {
         let loaded = try? WatchRuntime.secrets.load(account: GrokBotAPI.credentialAccount)
         let value = loaded ?? nil
