@@ -2,10 +2,10 @@ name: GrokBotWatch
 options:
   # The only bundle id to change. A free Personal Team needs a prefix that is
   # not already registered to another Apple ID. Regenerate after editing it.
-  # XcodeGen appends the target name:
-  #   <prefix>.GrokBotWatch
-  #   <prefix>.GrokBotComplication
-  #   <prefix>.GrokBotWatchTests
+  # Product ids are explicit so an embedded target stays prefixed with the app:
+  #   app:          <prefix>
+  #   complication: <prefix>.complication
+  #   tests:        <prefix>.tests
   bundleIdPrefix: &bundleIdPrefix com.aneesh15here.grokbotwatch
   deploymentTarget:
     watchOS: "11.0"
@@ -42,6 +42,7 @@ targets:
       path: GrokBotWatch/GrokBotWatch.free.entitlements
     settings:
       PRODUCT_NAME: GrokBotWatch
+      PRODUCT_BUNDLE_IDENTIFIER: "$(BUNDLE_ID_PREFIX)"
       GENERATE_INFOPLIST_FILE: YES
       INFOPLIST_FILE: GrokBotWatch/Info.plist
       CODE_SIGN_ENTITLEMENTS: GrokBotWatch/GrokBotWatch.free.entitlements
@@ -59,6 +60,7 @@ targets:
     entitlements:
       path: GrokBotComplication/GrokBotComplication.free.entitlements
     settings:
+      PRODUCT_BUNDLE_IDENTIFIER: "$(BUNDLE_ID_PREFIX).complication"
       GENERATE_INFOPLIST_FILE: YES
       INFOPLIST_FILE: GrokBotComplication/Info.plist
       CODE_SIGN_ENTITLEMENTS: GrokBotComplication/GrokBotComplication.free.entitlements
@@ -73,6 +75,7 @@ targets:
         product: GrokBotCore
       - target: GrokBotWatch
     settings:
+      PRODUCT_BUNDLE_IDENTIFIER: "$(BUNDLE_ID_PREFIX).tests"
       GENERATE_INFOPLIST_FILE: YES
       TEST_HOST: "$(BUILT_PRODUCTS_DIR)/GrokBotWatch.app/GrokBotWatch"
       BUNDLE_LOADER: "$(TEST_HOST)"

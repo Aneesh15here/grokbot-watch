@@ -31,7 +31,7 @@ You need Xcode 16 or newer, because the project targets watchOS 11. Xcode includ
 2. From this directory, generate the project: `xcodegen generate`
 3. Open `GrokBotWatch.xcodeproj`.
 4. Select the `GrokBotWatch` scheme and an Apple Watch Ultra 2 (49mm) simulator, or a paired Ultra 2.
-5. Signing is set up for a free Personal Team. The only bundle id to change is `options.bundleIdPrefix` in `project.yml`. The default is `com.aneesh15here.grokbotwatch`. If Apple says that id is already registered, change that one value and run `xcodegen generate` again. The targets become `<prefix>.GrokBotWatch`, `<prefix>.GrokBotComplication`, and `<prefix>.GrokBotWatchTests`.
+5. Signing is set up for a free Personal Team. The only bundle id to change is `options.bundleIdPrefix` in `project.yml`. The default is `com.aneesh15here.grokbotwatch`. If Apple says that id is already registered, change that one value and run `xcodegen generate` again. The app id is the prefix. The complication is `<prefix>.complication` and the tests are `<prefix>.tests`, so both stay prefixed with the app id.
 6. Set your Team under Signing & Capabilities for both the app and the complication.
 7. Run.
 
